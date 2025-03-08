@@ -1,0 +1,12 @@
+# Ignore node_modules in both backend and search-autocomplete
+/backend/node_modules/
+/search-autocomplete/node_modules/
+
+# Ignore the 'data' folder in backend
+/backend/data/
+
+# Ignore other unnecessary files/folders
+*.log
+*.env
+.vscode/
+build/
