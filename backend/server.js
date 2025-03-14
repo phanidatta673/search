@@ -46,7 +46,7 @@ const postSchema = new mongoose.Schema({
 });
 
 // Create the post model
-const post = mongoose.model('post',postSchema);
+const Post = mongoose.model('post',postSchema);
 
 // Autocomplete endpoint
 app.get('/autocomplete', async (req, res) => {
@@ -56,15 +56,42 @@ app.get('/autocomplete', async (req, res) => {
   }
   try {
     // Check Redis cache first
-    const cachedResults = await client.get(query);
+    const cachedResults = await client.get(`autocomplete:${query}`);
     if (cachedResults){
       return res.json({suggestions: JSON.parse(cachedResults)});
     }
     
     // If not in cache, perform MongoDB text search
-    const suggestions = await post.find({ $text: { $search: query}}).limit(10);
-    await client.set(query, JSON.stringify(suggestions.map(s => s.title)),'EX',60); // Cache for 60 sec
+    const suggestions = await Post.find({ $text: { $search: query}}).limit(10);
+    await client.set(`autocomplete:${query}`, JSON.stringify(suggestions.map(s => s.title)),'EX',60); // Cache for 60 sec
     res.json({suggestions: suggestions.map(s => s.title)});
+  } catch (error) {
+    console.error("Error fetching autocomplete suggestions:", error);
+    res.status(500).json({error:"Internal server error"});
+  }
+});
+
+app.get('/search', async (req, res) => {
+  const query = req.query.q;
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter is required' });
+  }
+  
+  try {
+    const cachedResults = await client.get(`search:${query}`  );
+    if (cachedResults) {
+      return res.json({ results: JSON.parse(cachedResults) });
+    }
+
+    // Perform full-text search
+    const results = await Post.find(
+      { $text: { $search: query } },
+      { score: { $meta: "textScore" }, title: 1, body: 1, tags: 1, score: 1, viewcount: 1 }
+    ).sort({ score: { $meta: "textScore" } }).limit(10);
+
+    await client.set(`search:${query}`, JSON.stringify(results), { EX: 60 }); // Cache results for 60s
+
+    res.json({ results: results });
   } catch (error) {
     console.error("Error fetching autocomplete suggestions:", error);
     res.status(500).json({error:"Internal server error"});

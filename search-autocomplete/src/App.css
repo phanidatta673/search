@@ -40,3 +40,96 @@
 .read-the-docs {
   color: #888;
 }
+
+.search-container {
+  max-width: 600px;
+  margin: 20px auto;
+  text-align: center;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-input {
+  width: 80%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.search-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-left: 5px;
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 5px;
+}
+
+.suggestions-list li {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.results-container {
+  margin-top: 20px;
+}
+
+.result-card {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 5px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.result-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.result-body {
+  margin: 10px 0;
+}
+
+.result-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: gray;
+}
+
+.result-body {
+  font-size: 14px;
+  color: #444;
+}
+
+.result-body p {
+  margin: 0;
+}
+
+.result-tags {
+  color: #007bff;
+  font-weight: bold;
+}
+
+.result-body,
+.result-tags,
+.score,
+.views {
+  display: inline-block;
+}
+
+.score {
+  margin-left: 20px;
+}
