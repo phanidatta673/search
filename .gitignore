@@ -10,3 +10,6 @@
 *.env
 .vscode/
 build/
+
+# Ignore Redis database file
+dump.rdb
