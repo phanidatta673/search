@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaSearch } from "react-icons/fa";
 import { Post } from "../types";
+import "../App.css";
 
 const API_URL = "http://localhost:4000/search";
 
@@ -13,6 +14,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchResults }) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [cursor,setCursor] = useState<string | null>(null);
 
   useEffect(() => {
     if (query.length < 2) {
@@ -37,11 +39,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchResults }) => {
 
   const handleSearch = async () => {
     if (!query) return;
-
     setLoading(true);
+
     try{
-      const response = await axios.get(`${API_URL}?q=${query}`);
+      const response = await axios.get(`${API_URL}?q=${query}${cursor ? `&cursor` : ''}`);
       onSearchResults(response.data.results);
+      setCursor(response.data.cursor);
       setSuggestions([]);
     } catch (error){
       console.error("Error fetching search results:", error);
@@ -55,6 +58,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearchResults }) => {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => e.key == "Enter" && handleSearch()}
         placeholder="Search..."
         className="search-input"
       />

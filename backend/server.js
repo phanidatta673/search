@@ -48,6 +48,19 @@ const postSchema = new mongoose.Schema({
 // Create the post model
 const Post = mongoose.model('post',postSchema);
 
+// Ensure index exists through createIndex()
+// Create text index
+Post.collection.createIndex(
+  { title: "text", body: "text", tags: "text"},
+  {name: "search_text_index"})
+.then(() => console.log("Text index created or already exists"))
+.catch((error) => console.log("Error creating text index:",error));
+
+// Create creationdate index
+Post.collection.createIndex({ creationdate:1 })
+.then(() => console.log("Index created or already exists on creationdate"))
+.catch((error) => console.log("Error creating index:", error));
+
 // Autocomplete endpoint
 app.get('/autocomplete', async (req, res) => {
   const query = req.query.q;
@@ -73,25 +86,40 @@ app.get('/autocomplete', async (req, res) => {
 
 app.get('/search', async (req, res) => {
   const query = req.query.q;
+  const cursor = req.query.cursor || null;
+  const pageSize = 10; 
+
   if (!query) {
     return res.status(400).json({ error: 'Query parameter is required' });
   }
   
   try {
-    const cachedResults = await client.get(`search:${query}`  );
+    const cachedResults = await client.get(`search:${query}:${cursor}`  );
     if (cachedResults) {
-      return res.json({ results: JSON.parse(cachedResults) });
+      return res.json({ results: JSON.parse(cachedResults), cursor:null });
     }
 
-    // Perform full-text search
-    const results = await Post.find(
-      { $text: { $search: query } },
-      { score: { $meta: "textScore" }, title: 1, body: 1, tags: 1, score: 1, viewcount: 1 }
-    ).sort({ score: { $meta: "textScore" } }).limit(10);
+    // If cursor is provided, fetch results that are greater than the cursor creationdate
+    const queryCondition = cursor
+      ? { $text: { $search: query }, creationdate: { $gt: cursor } }
+      : { $text: { $search: query } };
 
-    await client.set(`search:${query}`, JSON.stringify(results), { EX: 60 }); // Cache results for 60s
+    // Perform search, sorted by creationdate for pagination
+    const results = await Post.find(queryCondition)
+      .sort({ creationdate: 1 })  // Sort by creationdate to paginate correctly
+      .limit(pageSize);
 
-    res.json({ results: results });
+    // If results are found, find the last item's creationdate to use as the cursor for the next page
+    const newCursor = results.length > 0 ? results[results.length - 1].creationdate : null;
+
+    console.log("Query:", query);
+    console.log("Cursor:", cursor);
+    console.log("Query condition:", queryCondition);
+    console.log("Results count:", results.length);
+    // Cache the results for 60 seconds
+    await client.set(`search:${query}:${cursor}`, JSON.stringify(results), { EX: 60 });
+
+    res.json({ results, cursor:newCursor });
   } catch (error) {
     console.error("Error fetching autocomplete suggestions:", error);
     res.status(500).json({error:"Internal server error"});
